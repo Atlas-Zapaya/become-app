@@ -9121,6 +9121,7 @@ BE13_CSS=r'''<style>
 .st-key-be13_theme_controls .stButton button[kind="primary"]{box-shadow:0 4px 12px rgba(81,53,183,.24)!important}
 .be13-lamp-glow{position:fixed;z-index:99990;pointer-events:none;right:-95px;top:-105px;width:430px;height:430px;border-radius:50%;background:radial-gradient(circle at 52% 45%,rgba(255,106,88,.35) 0 9%,rgba(255,76,63,.20) 22%,rgba(187,48,57,.10) 42%,transparent 70%);mix-blend-mode:screen;filter:blur(2px)}
 @media(max-width:700px){.st-key-be13_theme_controls{right:.5rem;top:.35rem;padding:3px}.st-key-be13_theme_controls .stButton button{min-height:32px!important;height:32px!important;width:32px!important;min-width:32px!important}.st-key-be13_theme_controls .stButton button p{font-size:.76rem!important}}
+footer, [data-testid="stFooter"], [data-testid="stStatusWidget"], [data-testid="stDecoration"], .viewerBadge_container__r5tak, ._container_gzau3_1, [class*="viewerBadge"] {display:none!important;visibility:hidden!important;height:0!important;}
 </style>'''
 
 
