@@ -1,0 +1,8 @@
+streamlit>=1.55,<2
+pandas
+python-dotenv
+openai
+pypdf
+tzdata
+streamlit-cookies-manager-v2
+# refreshh
