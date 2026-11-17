@@ -97,6 +97,30 @@ st.set_page_config(
     initial_sidebar_state="auto",
 )
 st.markdown(f'<link rel="icon" type="image/svg+xml" href="{BE_LOGO_URI}"><link rel="apple-touch-icon" href="{BE_LOGO_URI}"><meta name="apple-mobile-web-app-title" content="Become"><meta name="application-name" content="Become">', unsafe_allow_html=True)
+st.markdown("""
+<style>
+/* Stop continuous background light-shade / aurora animations */
+*, *::before, *::after {
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+}
+[class*="aurora"], [class*="orb"], [class*="blob"], [class*="glow"], [class*="mesh"], [class*="shimmer"] {
+    animation: none !important;
+    transform: none !important;
+}
+/* Keep dropdowns readable in light mode (fixes dark selectbox bar) */
+div[data-baseweb="select"] > div {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    border-color: rgba(99, 102, 241, 0.25) !important;
+}
+div[data-baseweb="select"] span, div[data-baseweb="select"] svg {
+    color: #1e293b !important;
+    fill: #1e293b !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # RC15 persistent browser session. The encrypted cookie stores only the user's
 # Supabase refresh token + account identity + last page. It never stores CV/profile data.
