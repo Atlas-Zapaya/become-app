@@ -95,6 +95,7 @@ st.set_page_config(
     page_icon=BE_LOGO_URI,
     layout="wide",
     initial_sidebar_state="auto",
+    st.markdown(f'<link rel="icon" type="image/svg+xml" href="{BE_LOGO_URI}"><link rel="apple-touch-icon" href="{BE_LOGO_URI}"><meta name="apple-mobile-web-app-title" content="Become"><meta name="application-name" content="Become">', unsafe_allow_html=True)
 )
 
 # RC15 persistent browser session. The encrypted cookie stores only the user's
