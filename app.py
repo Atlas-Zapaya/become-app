@@ -87,8 +87,8 @@ except (FileNotFoundError, KeyError):
 # Streamlit's missing-secrets exception inherits FileNotFoundError.
 
 
-BE_LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">...'
-BE_LOGO_URI = 'data:image/svg+xml;base64,PHN2Zy...'
+BE_LOGO_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><radialGradient id="bg" cx="35%" cy="30%" r="75%"><stop offset="0%" stop-color="#e0e7ff"/><stop offset="55%" stop-color="#6366f1"/><stop offset="100%" stop-color="#312e81"/></radialGradient><linearGradient id="sp" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#93c5fd"/><stop offset="100%" stop-color="#fde68a"/></linearGradient></defs><circle cx="32" cy="32" r="29" fill="url(#bg)" stroke="#818cf8" stroke-width="2"/><circle cx="32" cy="32" r="23" fill="none" stroke="#c7d2fe" stroke-width="1" stroke-opacity="0.7"/><circle cx="24" cy="32" r="15" fill="none" stroke="#bae6fd" stroke-width="1" stroke-opacity="0.65"/><circle cx="37" cy="32" r="9.5" fill="none" stroke="#fde68a" stroke-width="1" stroke-opacity="0.75"/><path d="M32 8 A24 24 0 0 1 56 32 A15 15 0 0 1 41 47 A9.5 9.5 0 0 1 31.5 37.5 A6 6 0 0 1 37.5 31.5 A3.8 3.8 0 0 1 41.3 35.3" fill="none" stroke="url(#sp)" stroke-width="4.2" stroke-linecap="round"/><circle cx="38.5" cy="35.8" r="2.3" fill="#fde68a"/><circle cx="49" cy="14" r="2" fill="#ffffff"/></svg>'
+BE_LOGO_URI = "data:image/svg+xml;base64," + base64.b64encode(BE_LOGO_SVG.encode("utf-8")).decode("ascii")
 
 st.set_page_config(
     page_title="Become · Your next chapter",
