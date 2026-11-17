@@ -9113,10 +9113,14 @@ def be13_lamp_change():
 
 BE13_CSS=r'''<style>
 .st-key-be13_theme_controls{position:fixed;top:.28rem;right:3.9rem;z-index:999998;width:206px;padding:5px 7px;border-radius:18px;background:rgba(232,231,255,.88);border:1px solid rgba(112,92,181,.22);box-shadow:0 7px 22px rgba(38,28,84,.16);backdrop-filter:blur(16px)}
-.st-key-be13_theme_controls{position:fixed;top:.35rem;right:3.9rem;z-index:999998;width:auto!important;min-width:42px;padding:4px;border-radius:16px;background:rgba(232,231,255,.88);border:1px solid rgba(112,92,181,.22);box-shadow:0 7px 22px rgba(38,28,84,.16);backdrop-filter:blur(16px)}
-.st-key-be13_theme_controls [data-testid="stHorizontalBlock"]{gap:.28rem!important;flex-wrap:nowrap!important}.st-key-be13_theme_controls [data-testid="column"]{min-width:34px!important;width:34px!important;flex:0 0 34px!important}.st-key-be13_theme_controls .stButton button{min-height:34px!important;height:34px!important;min-width:34px!important;padding:0 6px!important;border-radius:12px!important;border-bottom-width:1px!important;font-size:.86rem!important;box-shadow:none!important}.st-key-be13_theme_controls .stButton button p{font-size:.82rem!important}.st-key-be13_theme_controls .stButton button[kind="primary"]{box-shadow:0 4px 12px rgba(81,53,183,.24)!important}
+.st-key-be13_theme_controls{position:fixed;top:.35rem;right:3.9rem;z-index:999998;width:auto!important;max-width:calc(100vw - 1rem);padding:4px;border-radius:16px;background:rgba(232,231,255,.92);border:1px solid rgba(112,92,181,.24);box-shadow:0 7px 22px rgba(38,28,84,.18);backdrop-filter:blur(16px)}
+.st-key-be13_theme_controls > div[data-testid="stVerticalBlock"]{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;align-items:center!important;gap:4px!important;width:auto!important}
+.st-key-be13_theme_controls > div[data-testid="stVerticalBlock"] > div{width:auto!important;flex:0 0 auto!important;margin:0!important}
+.st-key-be13_theme_controls .stButton button{min-height:34px!important;height:34px!important;width:34px!important;min-width:34px!important;padding:0!important;border-radius:11px!important;border-bottom-width:1px!important;font-size:.86rem!important;box-shadow:none!important}
+.st-key-be13_theme_controls .stButton button p{font-size:.82rem!important;margin:0!important}
+.st-key-be13_theme_controls .stButton button[kind="primary"]{box-shadow:0 4px 12px rgba(81,53,183,.24)!important}
 .be13-lamp-glow{position:fixed;z-index:99990;pointer-events:none;right:-95px;top:-105px;width:430px;height:430px;border-radius:50%;background:radial-gradient(circle at 52% 45%,rgba(255,106,88,.35) 0 9%,rgba(255,76,63,.20) 22%,rgba(187,48,57,.10) 42%,transparent 70%);mix-blend-mode:screen;filter:blur(2px)}
-@media(max-width:700px){.st-key-be13_theme_controls{right:.55rem;top:.35rem;width:auto!important;padding:3px}.st-key-be13_theme_controls .stButton button{min-height:32px!important;height:32px!important;min-width:32px!important}.st-key-be13_theme_controls .stButton button p{font-size:.76rem!important}}
+@media(max-width:700px){.st-key-be13_theme_controls{right:.5rem;top:.35rem;padding:3px}.st-key-be13_theme_controls .stButton button{min-height:32px!important;height:32px!important;width:32px!important;min-width:32px!important}.st-key-be13_theme_controls .stButton button p{font-size:.76rem!important}}
 </style>'''
 
 
@@ -9138,18 +9142,12 @@ def be13_render_theme_controls():
         if not is_open:
             st.button(current_icon,key="be13_theme_trigger",help="Theme & lighting",on_click=_be13_toggle_menu)
         else:
-            c1,c2,c3,c4,c5=st.columns(5,gap="small")
-            with c1:
-                st.button("☀️",key="be13_sky",help="Sky Blue",type="primary" if theme=="Sky Blue" else "secondary",on_click=_be13_pick_and_close,args=("Sky Blue",))
-            with c2:
-                st.button("💜",key="be13_indigo",help="Indigo",type="primary" if theme=="Indigo" else "secondary",on_click=_be13_pick_and_close,args=("Indigo",))
-            with c3:
-                st.button("🌙",key="be13_dark",help="Dark",type="primary" if theme=="Dark" else "secondary",on_click=_be13_pick_and_close,args=("Dark",))
-            with c4:
-                st.button("🔴" if lamp else "💡",key="be13_lamp",help="Warm red night lamp" if theme=="Dark" else "Night lamp is available in Dark mode",type="primary" if theme=="Dark" and lamp else "secondary",disabled=theme!="Dark",on_click=be13_toggle_lamp)
-            with c5:
-                st.button("✕",key="be13_theme_close",help="Close",on_click=_be13_toggle_menu)
-                
+            st.button("☀️",key="be13_sky",help="Sky Blue",type="primary" if theme=="Sky Blue" else "secondary",on_click=_be13_pick_and_close,args=("Sky Blue",))
+            st.button("💜",key="be13_indigo",help="Indigo",type="primary" if theme=="Indigo" else "secondary",on_click=_be13_pick_and_close,args=("Indigo",))
+            st.button("🌙",key="be13_dark",help="Dark",type="primary" if theme=="Dark" else "secondary",on_click=_be13_pick_and_close,args=("Dark",))
+            st.button("🔴" if lamp else "💡",key="be13_lamp",help="Warm red night lamp" if theme=="Dark" else "Night lamp is available in Dark mode",type="primary" if theme=="Dark" and lamp else "secondary",disabled=theme!="Dark",on_click=be13_toggle_lamp)
+            st.button("✕",key="be13_theme_close",help="Close",on_click=_be13_toggle_menu)
+
 def be5_theme():
     be_html(BE5_CSS)
     be_html(BE6_CSS_A)
