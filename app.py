@@ -2639,10 +2639,13 @@ def be_render_sidebar(page):
         for group_name, entries in BE_PAGE_GROUPS:
             be_html(f'<div class="be-nav-label">{group_name}</div>')
             for destination, label, _ in entries:
-                st.button(label, key="be_nav_" + be_slug(destination),
+                if be17_is_workforce() and destination in {"EasyApply", "Future Paths", "Opportunities"}:
+                    continue
+                display_label = "Team Roster & Goal" if (be17_is_workforce() and destination == "Profile") else label
+                st.button(display_label, key="be_nav_" + be_slug(destination),
                           type="primary" if page == destination else "secondary",
                           on_click=be_navigate, args=(destination,), use_container_width=True,
-                          help=("Current page" if page == destination else f"Open {label.lower()}"))
+                          help=("Current page" if page == destination else f"Open {display_label.lower()}"))
         name = str(state.get("profile", {}).get("name") or "Your next chapter")
         initials = "".join(part[0] for part in name.split()[:2]).upper() if state.get("profile", {}).get("name") else "B"
         profile = state.get("profile", {})
@@ -9392,17 +9395,1204 @@ def be11_render_easyapply_standalone():
                 st.download_button("Download CV working copy", data=st.session_state.get(f"be11_cv_working_copy_{selected}", app.get("cv_working_copy","")), file_name=f'easyapply-{be_slug(app.get("job_title","role"))}-cv.txt', mime="text/plain", key="be11_dl_cv_"+selected, use_container_width=True)
                 st.download_button("Download motivation letter", data=st.session_state.get(f"be11_motivation_letter_{selected}", app.get("motivation_letter","")), file_name=f'easyapply-{be_slug(app.get("job_title","role"))}-motivation.txt', mime="text/plain", key="be11_dl_letter_"+selected, use_container_width=True)
 
+# ============================================================
+# BE18 — EASYAPPLY FULL APPLICATION & INTERVIEW SUITE
+# Opportunities + CV Tailoring + Motivation Letter + Certs + Mock Exam + Live Mock Interview
+# ============================================================
+
+BE18_CSS = r"""<style>
+.be18-banner{padding:18px 22px;border-radius:22px;background:linear-gradient(120deg,#1f1647,#4d33b8 56%,#2878c4);color:#fff;margin:6px 0 16px;box-shadow:0 10px 26px rgba(42,26,99,.18)}
+.be18-banner h3{margin:0 0 4px;color:#fff!important;font-size:1.1rem}.be18-banner p{margin:0;color:#e6e1ff!important;font-size:.82rem}
+.be18-card{padding:18px 20px;border-radius:20px;background:rgba(255,255,255,.92);border:1px solid #d6d0ef;margin-bottom:12px;box-shadow:0 6px 18px rgba(54,38,108,.06)}
+.be18-pill{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:800;background:#ede8ff;color:#4e32b5;border:1px solid #d3c8fa;margin:3px 5px 3px 0}
+.be18-pill.green{background:#e3f7ed;color:#136b4e;border-color:#b6e3cd}
+.be18-pill.amber{background:#fff1db;color:#874e10;border-color:#edd0a1}
+</style>"""
+
+
+def be18_sample_cv_and_package():
+    """Populates a complete sample CV, target role, tailored CV, motivation letter, certs, mock exam & interview."""
+    ea = be11_migrate()
+    cid = "sample-cv-be18"
+    ea["cv_library"][cid] = {
+        "id": cid,
+        "label": "AI & Data Systems CV (Sample)",
+        "filename": "Sample_AI_Engineer_CV.pdf",
+        "text": (
+            "Education: M.Sc. Control, Computer & Communication Engineering (THM Friedberg).\n"
+            "Experience & Projects:\n"
+            "- Architected multi-layer AI decision-intelligence platform in Python and Streamlit with structured JSON scoring.\n"
+            "- Built physics-informed fleet energy optimization models using Python, NumPy, Pandas, and time-series telemetry.\n"
+            "- Developed REST APIs with FastAPI, SQL databases, and automated data validation pipelines.\n"
+            "Skills: Python, SQL, Pandas, FastAPI, Machine Learning, Time-Series Analysis, Git, Docker."
+        ),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    aid = "sample-app-be18"
+    ea["applications"][aid] = {
+        "id": aid,
+        "job_title": "Applied AI & Data Engineer",
+        "company": "Rhein-Main Mobility Tech GmbH",
+        "job_description": (
+            "We are looking for an Applied AI & Data Engineer to build production machine learning pipelines, "
+            "time-series forecasting models, and scalable FastAPI microservices. Requirements: Strong Python, SQL, "
+            "FastAPI, Docker, experience with time-series or predictive modeling, MLOps/CI-CD basics, and clear cross-functional communication."
+        ),
+        "job_url": "https://example.org/careers/applied-ai-engineer",
+        "cv_id": cid,
+        "cv_working_copy": (
+            "APPLIED AI & DATA ENGINEER\n"
+            "Summary: M.Sc. Control & Computer Engineering candidate specializing in production Python AI architectures, "
+            "time-series predictive modeling, and scalable FastAPI microservices.\n\n"
+            "Tailored Highlights:\n"
+            "- Designed and shipped a multi-layer AI decision-intelligence engine in Python with deterministic JSON evaluation.\n"
+            "- Engineered physics-informed time-series energy and fleet forecasting pipelines using Python, Pandas, and NumPy.\n"
+            "- Built containerized FastAPI & SQL microservices with automated schema validation and reproducible workflows."
+        ),
+        "motivation_letter": (
+            "Dear Hiring Team at Rhein-Main Mobility Tech GmbH,\n\n"
+            "I am excited to apply for the Applied AI & Data Engineer role. Combining my Master's training in Control, "
+            "Computer & Communication Engineering at THM with hands-on experience building production Python AI systems "
+            "and time-series fleet optimization models, I bring both engineering rigor and rapid execution.\n\n"
+            "In my recent work, I architected an end-to-end decision-intelligence platform and built predictive telemetry "
+            "models using Python, FastAPI, SQL, and Docker—directly matching your stack for scalable ML services.\n\n"
+            "I would welcome the opportunity to discuss how I can help accelerate your predictive modeling roadmap.\n\n"
+            "Best regards,\n[Your Name]"
+        ),
+        "application_notes": "Emphasize end-to-end Python architecture + time-series forecasting rigor.",
+        "interview_notes": "Prepare 2-minute walkthrough of AI system architecture and handling noisy telemetry data.",
+        "status": "Ready to review",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "ai_suite": {
+            "certifications": [
+                {"name": "AWS Certified Machine Learning – Specialty / Associate", "provider": "AWS", "why": "Validates cloud model deployment, monitoring, and MLOps pipelines mentioned in the role.", "prep_hours": "15–20 hrs"},
+                {"name": "Docker & Kubernetes for ML Engineers", "provider": "Coursera / Linux Foundation", "why": "Strengthens container orchestration and CI/CD inference readiness.", "prep_hours": "8–10 hrs"},
+            ],
+            "prep_topics": [
+                "Time-series cross-validation (walk-forward validation vs. random split to prevent data leakage)",
+                "Designing low-latency FastAPI inference endpoints with Pydantic validation & async workers",
+                "Monitoring model drift and data quality in production telemetry pipelines",
+            ],
+            "mock_exam": [
+                {
+                    "id": "q1",
+                    "question": "Why is standard k-fold random cross-validation invalid for time-series fleet forecasting?",
+                    "options": [
+                        "It causes future data leakage into training folds, inflating offline accuracy.",
+                        "It requires too much GPU memory.",
+                        "SQL databases do not support random sampling.",
+                    ],
+                    "correct_index": 0,
+                    "explanation": "Temporal ordering must be preserved using walk-forward / expanding-window splits so models never train on future timestamps.",
+                },
+                {
+                    "id": "q2",
+                    "question": "Which FastAPI practice best prevents malformed sensor payloads from crashing an ML inference service?",
+                    "options": [
+                        "Disabling request logging",
+                        "Strict Pydantic schema validation with explicit HTTP 422 error handling",
+                        "Running model training inside the GET endpoint",
+                    ],
+                    "correct_index": 1,
+                    "explanation": "Pydantic enforces types and value bounds before data reaches the inference model.",
+                },
+                {
+                    "id": "q3",
+                    "question": "What is the most reliable indicator of silent model degradation in production?",
+                    "options": [
+                        "Feature distribution drift and rising prediction error against delayed ground-truth labels",
+                        "Container CPU usage staying at 20%",
+                        "Git commit frequency",
+                    ],
+                    "correct_index": 0,
+                    "explanation": "Tracking input feature drift alongside actual outcome residuals catches degradation early.",
+                },
+            ],
+            "interview_history": [
+                {
+                    "question": "Walk me through an AI or data pipeline you built end-to-end. How did you validate that its outputs were reliable?",
+                    "user_answer": "",
+                    "feedback": "",
+                }
+            ],
+        },
+    }
+    ea["active_application"] = aid
+    save_state()
+
+
+def be18_import_opportunity_to_easyapply(job_id, cv_id):
+    ea = be11_migrate()
+    job = be4_job(job_id)
+    if not job or cv_id not in ea["cv_library"]:
+        st.session_state["be11_ea_error"] = "Select both a valid CV and a job listing."
+        return
+    aid = "ea-" + str(job_id)
+    base_cv = ea["cv_library"][cv_id]
+    ea["applications"][aid] = {
+        "id": aid,
+        "job_title": job.get("title", "Role"),
+        "company": job.get("company", "Employer"),
+        "job_description": str(job.get("description", ""))[:30000],
+        "job_url": str(job.get("url", ""))[:1200],
+        "cv_id": cv_id,
+        "cv_working_copy": base_cv["text"],
+        "motivation_letter": "",
+        "application_notes": "",
+        "interview_notes": "",
+        "status": "Draft",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    ea["active_application"] = aid
+    st.session_state["be11_ea_notice"] = f"Loaded '{job.get('title', 'Role')}' into your EasyApply workspace!"
+    save_state()
+
+
+def be18_generate_full_suite(aid):
+    ea = be11_migrate()
+    app = ea["applications"].get(aid)
+    if not app:
+        raise ValueError("Select an application workspace first.")
+    cv = ea["cv_library"].get(app.get("cv_id"), {})
+    cv_text = str(cv.get("text") or app.get("cv_working_copy") or "").strip()
+    if not cv_text:
+        raise ValueError("Please attach or add CV text first.")
+
+    if not OPENAI_API_KEY:
+        raise ValueError(
+            "OPENAI_API_KEY is not configured yet. Add it to .streamlit/secrets.toml for custom AI tailoring, "
+            "or click '⚡ Load Instant Sample Application & Interview Suite' above to demo all features right now!"
+        )
+
+    system_prompt = """
+You are EasyApply by Become, an executive career application and interview preparation engine.
+Given the candidate's real CV and a target job description, generate a complete, truthful application & interview prep package.
+NEVER invent fake jobs, degrees, or employers not in the CV.
+Return STRICT JSON only:
+{
+  "tailored_cv_text": "",
+  "motivation_letter": "",
+  "certifications": [
+    {"name": "", "provider": "", "why": "", "prep_hours": ""}
+  ],
+  "prep_topics": ["Key topic 1 to master for this role", "Key topic 2", "Key topic 3"],
+  "mock_exam": [
+    {
+      "id": "q1",
+      "question": "",
+      "options": ["Option A", "Option B", "Option C"],
+      "correct_index": 0,
+      "explanation": ""
+    }
+  ],
+  "first_interview_question": ""
+}
+Include 3 to 4 realistic multiple-choice mock exam questions testing skills required by the job.
+"""
+    user_prompt = json.dumps({
+        "job_title": app.get("job_title", ""),
+        "company": app.get("company", ""),
+        "job_description": app.get("job_description", "")[:12000],
+        "candidate_cv": cv_text[:15000],
+    }, ensure_ascii=False, indent=2)
+
+    raw = ask_ai(system_prompt, user_prompt)
+    res = parse_json_response(raw)
+    if not isinstance(res, dict) or not res.get("tailored_cv_text"):
+        raise ValueError("EasyApply generation returned incomplete data. Please retry.")
+
+    app["cv_working_copy"] = str(res.get("tailored_cv_text", app["cv_working_copy"]))[:50000]
+    app["motivation_letter"] = str(res.get("motivation_letter", ""))[:30000]
+    app["ai_suite"] = {
+        "certifications": res.get("certifications", []),
+        "prep_topics": res.get("prep_topics", []),
+        "mock_exam": res.get("mock_exam", []),
+        "interview_history": [
+            {
+                "question": str(res.get("first_interview_question") or f"Tell me why your background fits {app.get('job_title', 'this role')} and walk through your most relevant project."),
+                "user_answer": "",
+                "feedback": "",
+            }
+        ],
+    }
+    app["updated_at"] = datetime.now(timezone.utc).isoformat()
+    save_state()
+
+
+def be18_evaluate_interview_turn(aid, turn_idx, user_answer):
+    ea = be11_migrate()
+    app = ea["applications"].get(aid)
+    if not app or "ai_suite" not in app:
+        return
+    history = app["ai_suite"].setdefault("interview_history", [])
+    if not (0 <= turn_idx < len(history)):
+        return
+    q_text = history[turn_idx]["question"]
+    ans = str(user_answer).strip()
+    if len(ans) < 5:
+        raise ValueError("Write a substantive answer before submitting to the interviewer.")
+
+    if not OPENAI_API_KEY:
+        history[turn_idx]["user_answer"] = ans
+        history[turn_idx]["feedback"] = (
+            "**Strengths:** Clear structure and direct ownership of your engineering decisions.\n\n"
+            "**Coach Upgrade (STAR Method):** Quantify the latency/accuracy improvement and explicitly connect it back to "
+            f"{app.get('company', 'the employer')}'s production requirements."
+        )
+        if turn_idx == len(history) - 1:
+            history.append({
+                "question": f"Follow-up: Imagine a key requirement for {app.get('job_title', 'this role')} fails in production during peak load. How do you debug and communicate trade-offs?",
+                "user_answer": "",
+                "feedback": "",
+            })
+        save_state()
+        return
+
+    system_prompt = """
+You are an expert hiring manager and interview coach conducting a mock interview for the target role.
+Evaluate the candidate's answer constructively, teach them how to improve it using STAR / technical depth, and provide the next realistic interview question.
+Return STRICT JSON only:
+{
+  "feedback": "Concise coaching evaluation: what worked, what was missing, and a sharper phrasing tip.",
+  "next_question": "The next tailored interview question for this specific job."
+}
+"""
+    user_prompt = json.dumps({
+        "job_title": app.get("job_title", ""),
+        "job_description": app.get("job_description", "")[:6000],
+        "question_asked": q_text,
+        "candidate_answer": ans,
+    }, ensure_ascii=False)
+    res = parse_json_response(ask_ai(system_prompt, user_prompt))
+    history[turn_idx]["user_answer"] = ans
+    history[turn_idx]["feedback"] = str(res.get("feedback", ""))
+    if res.get("next_question") and turn_idx == len(history) - 1:
+        history.append({"question": str(res["next_question"]), "user_answer": "", "feedback": ""})
+    save_state()
+
+
+def be18_render_easyapply_full():
+    be_html(BE18_CSS)
+    ea = be11_migrate()
+    be_html(
+        '<div class="be11-ea-hero"><div><div class="be3-eyebrow">EASYAPPLY BY BECOME · COMPLETE SUITE</div>'
+        '<h1>Opportunities → Tailored CV → Mock Interview.</h1>'
+        '<p>Browse live roles or paste any job, upload your CV, generate a tailored CV & motivation letter, get certification ideas, and pass a role-specific mock exam & live AI interview.</p></div>'
+        '<div class="be11-ea-bubbles">'
+        '<div class="be11-ea-bubble"><div><b>💼</b>Opportunities</div></div>'
+        '<div class="be11-ea-bubble"><div><b>✍️</b>CV & Letter</div></div>'
+        '<div class="be11-ea-bubble"><div><b>🏅</b>Certs & Prep</div></div>'
+        '<div class="be11-ea-bubble"><div><b>🎤</b>Mock Interview</div></div>'
+        '</div></div>'
+    )
+
+    if st.session_state.get("be11_ea_notice"):
+        st.success(st.session_state.pop("be11_ea_notice"))
+    if st.session_state.get("be11_ea_error"):
+        st.error(st.session_state.pop("be11_ea_error"))
+
+    top_a, top_b = st.columns([1.3, 1], gap="small")
+    with top_a:
+        if st.button("⚡ Load Instant Sample Application & Interview Suite", key="be18_load_demo", type="primary", use_container_width=True):
+            be18_sample_cv_and_package()
+            st.rerun()
+    with top_b:
+        st.caption(f"CVs in library: **{len(ea['cv_library'])}** · Active job workspaces: **{len(ea['applications'])}**")
+
+    tab_opps, tab_cvs, tab_work = st.tabs([
+        "1 · 💼 Opportunities & Job Intake",
+        "2 · 📄 My CVs",
+        "3 · 🎯 Tailored CV, Letter, Certs & Mock Interview",
+    ])
+
+    # TAB 1: Opportunities Browser + Manual Job Paste
+    with tab_opps:
+        if not ea["cv_library"]:
+            st.warning("Upload a CV in **Tab 2 (My CVs)** or click **Load Instant Sample** above so you can attach a CV to any opportunity.")
+        cv_ids = list(ea["cv_library"])
+        chosen_cv = None
+        if cv_ids:
+            chosen_cv = st.selectbox(
+                "Select which CV to use for applications",
+                cv_ids,
+                key="be18_opp_cv_select",
+                format_func=lambda x: ea["cv_library"][x].get("label", "CV"),
+            )
+
+        st.subheader("Fetch Live Job Opportunities")
+        f1, f2, f3 = st.columns([1.5, 1.2, 1], gap="small")
+        with f1:
+            q_role = st.text_input("Role or keyword", value=st.session_state.get("be4_job_query", "Data Scientist"), key="be18_q_role")
+        with f2:
+            q_loc = st.text_input("Location (optional)", value=st.session_state.get("be4_job_location", "Germany"), key="be18_q_loc")
+        with f3:
+            st.write("")
+            if st.button("Search Opportunities →", key="be18_fetch_opps", use_container_width=True):
+                st.session_state["be4_job_query"] = q_role
+                st.session_state["be4_job_location"] = q_loc
+                be4_fetch_jobs_action(force=True)
+                st.rerun()
+
+        feed = state.get("opportunities", {}).get("feeds", {}).get(st.session_state.get("be4_job_source", "All available sources"))
+        fetched_jobs = be4_filter_jobs((feed or {}).get("jobs", []), q_role, q_loc, False, 90)
+        if fetched_jobs:
+            st.caption(f"Showing top {min(8, len(fetched_jobs))} live listings:")
+            for j in fetched_jobs[:8]:
+                be_html(
+                    f'<div class="be18-card"><strong>{be_escape(j.get("title",""))}</strong> · {be_escape(j.get("company",""))} '
+                    f'<span class="be18-pill">{be_escape(j.get("location",""))}</span>'
+                    f'<p style="margin:6px 0 0;font-size:.78rem;color:#5b507a">{be_escape(j.get("description","")[:220])}...</p></div>'
+                )
+                if chosen_cv:
+                    st.button(
+                        f"Tailor CV & Prepare Interview for '{j.get('title','')[:35]}' →",
+                        key="be18_pick_job_" + j["id"],
+                        on_click=be18_import_opportunity_to_easyapply,
+                        args=(j["id"], chosen_cv),
+                        use_container_width=True,
+                    )
+
+        st.divider()
+        st.subheader("Or Paste Any Job Description Directly")
+        st.text_input("Job title", key="be11_job_title", placeholder="e.g. AI Product Engineer")
+        st.text_input("Company", key="be11_job_company", placeholder="e.g. Siemens / Startup GmbH")
+        st.text_input("Job link (optional)", key="be11_job_url", placeholder="https://...")
+        if cv_ids:
+            st.selectbox("Base CV", cv_ids, key="be11_job_cv", format_func=lambda x: ea["cv_library"][x].get("label", "CV"))
+        st.text_area("Paste full job description", key="be11_job_description", height=180, placeholder="Paste responsibilities and requirements...")
+        st.button("Create Application & Interview Workspace →", key="be11_create_app", type="primary", on_click=be11_create_application, disabled=not cv_ids, use_container_width=True)
+
+    # TAB 2: CV Library
+    with tab_cvs:
+        st.file_uploader("Upload CV (PDF)", type=["pdf"], key="be11_cv_upload")
+        st.text_input("Label this CV", placeholder="e.g. AI Engineering CV 2026", key="be11_cv_label")
+        st.button("Save CV to Library", key="be11_add_cv", type="primary", on_click=be11_add_cv, use_container_width=True)
+        for cv in ea["cv_library"].values():
+            be_html(f'<div class="be18-card"><strong>📄 {be_escape(cv.get("label","CV"))}</strong><p style="margin:4px 0 0;font-size:.78rem;color:#625680">{be_escape(cv.get("filename",""))}</p></div>')
+            with st.expander("Inspect CV text"):
+                st.text_area("Extracted CV", value=cv.get("text", ""), height=200, disabled=True, key="be18_cv_view_" + cv["id"])
+
+    # TAB 3: Full Tailoring + Certs + Mock Exam + Live Mock Interview
+    with tab_work:
+        apps = ea["applications"]
+        if not apps:
+            st.info("Select an opportunity in Tab 1 or click **Load Instant Sample** at the top to launch your workspace.")
+            return
+        ids = list(apps)
+        selected = st.selectbox(
+            "Active Application Workspace",
+            ids,
+            index=ids.index(ea["active_application"]) if ea.get("active_application") in ids else 0,
+            key="be11_app_selector",
+            format_func=lambda x: f'{apps[x].get("job_title","Role")} · {apps[x].get("company","Employer")}',
+        )
+        ea["active_application"] = selected
+        app = apps[selected]
+        cv = ea["cv_library"].get(app.get("cv_id"), {})
+
+        keywords = be10_fallback_keywords({"title": app.get("job_title", ""), "description": app.get("job_description", "")}, limit=16)
+        hits, missing, coverage = be10_keyword_coverage(keywords, [{"text": app.get("cv_working_copy", "")}])
+
+        be_html(
+            f'<div class="be18-banner"><h3>🎯 {be_escape(app.get("job_title","Role"))} — {be_escape(app.get("company","Employer"))}</h3>'
+            f'<p>Keyword Visibility: <strong>{coverage}%</strong> ({len(hits)} matched · {len(missing)} to address) · Base CV: {be_escape(cv.get("label","CV"))}</p></div>'
+        )
+
+        if st.button("✨ Generate Tailored CV, Motivation Letter, Certifications & Mock Interview →", key="be18_gen_all_" + selected, type="primary", use_container_width=True):
+            try:
+                with st.spinner("Tailoring CV, drafting motivation letter, mapping certifications & building mock interview..."):
+                    be18_generate_full_suite(selected)
+                st.success("Full EasyApply package generated!")
+                st.rerun()
+            except Exception as exc:
+                st.error(be3_error(exc))
+
+        sub_cv, sub_letter, sub_certs, sub_exam, sub_interview = st.tabs([
+            "📄 Tailored CV",
+            "✉️ Motivation Letter",
+            "🏅 Certs & Role Prep",
+            "📝 Mock Interview Exam",
+            "🎤 Live Mock Interview",
+        ])
+
+        with sub_cv:
+            st.markdown("**Keyword Match Breakdown**")
+            kw_html = "".join(f'<span class="be18-pill green">✓ {be_escape(k)}</span>' for k in hits[:10]) + "".join(
+                f'<span class="be18-pill amber">? {be_escape(k)}</span>' for k in missing[:10]
+            )
+            be_html(f"<div>{kw_html}</div>")
+            st.text_area("Editable Tailored CV", value=app.get("cv_working_copy", ""), height=360, key=f"be11_cv_working_copy_{selected}")
+            b1, b2 = st.columns(2)
+            with b1:
+                st.button("Save Tailored CV", key="be18_save_cv_" + selected, on_click=be11_save_application, args=(selected,), use_container_width=True)
+            with b2:
+                st.download_button("Download Tailored CV (.txt)", data=app.get("cv_working_copy", ""), file_name=f"tailored-cv-{be_slug(app.get('job_title','role'))}.txt", mime="text/plain", key="be18_dl_cv_" + selected, use_container_width=True)
+
+        with sub_letter:
+            st.text_area("Editable Motivation / Cover Letter", value=app.get("motivation_letter", ""), height=340, key=f"be11_motivation_letter_{selected}")
+            b1, b2 = st.columns(2)
+            with b1:
+                st.button("Save Motivation Letter", key="be18_save_let_" + selected, on_click=be11_save_application, args=(selected,), use_container_width=True)
+            with b2:
+                st.download_button("Download Motivation Letter (.txt)", data=app.get("motivation_letter", ""), file_name=f"motivation-letter-{be_slug(app.get('job_title','role'))}.txt", mime="text/plain", key="be18_dl_let_" + selected, use_container_width=True)
+
+        suite = app.get("ai_suite") or {}
+        with sub_certs:
+            st.subheader("Recommended Certifications & Fast-Track Credentials")
+            certs = suite.get("certifications", [])
+            if certs:
+                for c in certs:
+                    be_html(
+                        f'<div class="be18-card"><strong>🏅 {be_escape(c.get("name",""))}</strong> · <span class="be18-pill">{be_escape(c.get("provider",""))}</span> '
+                        f'<span class="be18-pill green">{be_escape(c.get("prep_hours",""))}</span>'
+                        f'<p style="margin:6px 0 0;font-size:.82rem;color:#463b66">{be_escape(c.get("why",""))}</p></div>'
+                    )
+            else:
+                st.caption("Click 'Generate Tailored CV, Motivation Letter, Certifications & Mock Interview' above to get tailored certification ideas.")
+
+            st.subheader("Role-Specific Study & Interview Prep Checklist")
+            for idx, topic in enumerate(suite.get("prep_topics", []), start=1):
+                st.checkbox(f"{idx}. {topic}", key=f"be18_prep_{selected}_{idx}")
+
+        with sub_exam:
+            st.subheader("Role-Specific Mock Interview Exam")
+            exam_qs = suite.get("mock_exam", [])
+            if not exam_qs:
+                st.caption("Generate the EasyApply package above to unlock your scored mock interview exam.")
+            else:
+                user_picks = {}
+                for idx, q in enumerate(exam_qs):
+                    opts = q.get("options", [])
+                    pick = st.radio(f"**Q{idx + 1}. {q.get('question', '')}**", list(range(len(opts))), format_func=lambda i, o=opts: o[i], index=None, key=f"be18_exam_{selected}_{idx}")
+                    user_picks[idx] = pick
+                if st.button("Grade My Mock Exam →", key="be18_grade_exam_" + selected, type="primary"):
+                    score = sum(1 for idx, q in enumerate(exam_qs) if user_picks.get(idx) == q.get("correct_index"))
+                    st.success(f"Score: {score} / {len(exam_qs)} ({round(score / max(1, len(exam_qs)) * 100)}%)")
+                    for idx, q in enumerate(exam_qs):
+                        correct_idx = q.get("correct_index", 0)
+                        opts = q.get("options", [])
+                        if user_picks.get(idx) == correct_idx:
+                            st.write(f"✅ **Q{idx + 1} Correct:** {q.get('explanation', '')}")
+                        else:
+                            right_ans = opts[correct_idx] if 0 <= correct_idx < len(opts) else ""
+                            st.warning(f"❌ **Q{idx + 1} Review:** Best answer is *{right_ans}*. {q.get('explanation', '')}")
+
+        with sub_interview:
+            st.subheader("Live Interactive Mock Interview & Coaching")
+            st.caption("Answer each question as you would in the real interview. Your AI Hiring Manager evaluates your answer, teaches improvements, and asks the next follow-up.")
+            history = suite.get("interview_history", [])
+            if not history:
+                st.caption("Generate the EasyApply package above to start your live mock interview.")
+            for idx, turn in enumerate(history):
+                be_html(f'<div class="be18-card"><strong>🎙️ Interviewer Question #{idx + 1}:</strong><p style="margin:6px 0 0;font-size:.9rem;color:#241944">{be_escape(turn.get("question",""))}</p></div>')
+                ans_val = st.text_area("Your Interview Response", value=turn.get("user_answer", ""), height=120, key=f"be18_iv_ans_{selected}_{idx}", placeholder="Structure your answer clearly (Context -> Action -> Measurable Result)...")
+                if st.button("Submit Answer & Get Coach Feedback →", key=f"be18_iv_submit_{selected}_{idx}", type="primary" if not turn.get("feedback") else "secondary"):
+                    try:
+                        with st.spinner("Evaluating your answer and preparing next interview question..."):
+                            be18_evaluate_interview_turn(selected, idx, ans_val)
+                        st.rerun()
+                    except Exception as exc:
+                        st.error(be3_error(exc))
+                if turn.get("feedback"):
+                    st.info(turn["feedback"])
 
 def be11_render_easyapply_hub():
-    be11_render_easyapply_standalone()
-    if be_has_journey() and be4_job():
-        st.divider()
-        with st.expander("Use EasyApply with the job selected inside Become"):
-            st.caption("This keeps the existing source-grounded EasyApply preview available for your Become journey.")
-            be4_render_easyapply()
+    be18_render_easyapply_full()
 
 
 # ============================================================
+# ============================================================
+# ============================================================
+# BE17 — BECOME WORKFORCE INTELLIGENCE ENGINE
+# Full B2B Team & Individual Skill-Gap, Roadmap & Project Engine
+# ============================================================
+
+BE17_CSS = r"""<style>
+.be17-track-note{text-align:center;font-size:.78rem;color:#5a4d78;margin:4px 0 10px;font-weight:650}
+.be17-wf-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 22px;border-radius:20px;background:linear-gradient(115deg,#23154d,#4e32b5 58%,#2f78c9);color:#fff;margin:6px 0 16px;box-shadow:0 10px 26px rgba(45,27,105,.18)}
+.be17-wf-banner strong{font-size:1rem;color:#fff!important}.be17-wf-banner span{font-size:.78rem;color:#e6e0ff!important}
+.be17-member-card{padding:18px 20px;border-radius:20px;background:rgba(255,255,255,.92);border:1px solid #d7d1f0;margin-bottom:12px;box-shadow:0 6px 18px rgba(54,38,108,.06)}
+.be17-member-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.be17-member-head h3{margin:0;font-size:1.02rem;color:#241944!important}
+.be17-gap-pill{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:800;background:#fff0dc;color:#8a4f11;border:1px solid #efd0a2;margin:3px 5px 3px 0}
+.be17-ok-pill{display:inline-flex;padding:4px 10px;border-radius:999px;font-size:.7rem;font-weight:800;background:#e4f7ed;color:#146d50;border:1px solid #b8e4cf;margin:3px 5px 3px 0}
+</style>"""
+
+
+def be17_migrate(data=None):
+    data = state if data is None else data
+    wf = data.setdefault("workforce", {})
+    wf.setdefault("active_track", "career")
+    wf.setdefault("org_name", "")
+    wf.setdefault("team_name", "")
+    wf.setdefault("project_goal", "")
+    wf.setdefault("timeline_months", 3)
+    wf.setdefault("weekly_hours_per_person", 4)
+    wf.setdefault("members", [
+        {"name": "", "role": "", "skills": "", "current_work": ""},
+        {"name": "", "role": "", "skills": "", "current_work": ""},
+    ])
+    wf.setdefault("analysis", None)
+    return wf
+
+
+def be17_is_workforce():
+    return be17_migrate().get("active_track") == "workforce"
+
+
+def be17_set_track(track):
+    wf = be17_migrate()
+    wf["active_track"] = "workforce" if track == "workforce" else "career"
+    st.session_state["be17_track"] = wf["active_track"]
+
+
+def be17_enter_track():
+    wf = be17_migrate()
+    track = st.session_state.get("be17_track", wf.get("active_track", "career"))
+    wf["active_track"] = track
+    be_navigate("Dashboard")
+
+
+def be17_add_member():
+    wf = be17_migrate()
+    if len(wf["members"]) < 20:
+        wf["members"].append({"name": "", "role": "", "skills": "", "current_work": ""})
+
+
+def be17_remove_member(idx):
+    wf = be17_migrate()
+    if len(wf["members"]) > 1 and 0 <= idx < len(wf["members"]):
+        wf["members"].pop(idx)
+
+
+def be17_load_sample_team():
+    wf = be17_migrate()
+    wf["active_track"] = "workforce"
+    wf["org_name"] = "Rhein-Main Mobility Systems GmbH"
+    wf["team_name"] = "Autonomous Fleet AI Squad"
+    wf["project_goal"] = "Deploy real-time battery state-of-health forecasting and predictive route dispatch across 250 e-scooters within 4 months."
+    wf["timeline_months"] = 4
+    wf["weekly_hours_per_person"] = 5
+    wf["members"] = [
+        {"name": "Lukas Weber", "role": "Backend & Cloud Engineer", "skills": "Python (4/5), FastAPI (4/5), PostgreSQL (3.5/5), Docker (3/5), Kubernetes (1/5), Time-Series ML (1/5)", "current_work": "Builds telemetry ingestion APIs and cloud deployment pipelines"},
+        {"name": "Amina Hassan", "role": "Data Scientist", "skills": "Python (4/5), Pandas/SQL (4/5), Classical ML (3.5/5), Deep Learning / Forecasting (2/5), MLOps & CI/CD (1/5)", "current_work": "Prototypes battery degradation models in Jupyter notebooks"},
+        {"name": "Jonas Becker", "role": "Embedded IoT Engineer", "skills": "C++ (4/5), MQTT/Edge Telemetry (4/5), Python (2.5/5), Cloud Streaming (1.5/5), ML Deployment (0.5/5)", "current_work": "Manages scooter firmware and CAN-bus sensor streams"},
+        {"name": "Elena Rostova", "role": "Product & Operations Lead", "skills": "Agile Delivery (4/5), Fleet Operations (4/5), Data Analytics (2.5/5), AI Product Scoping (2/5)", "current_work": "Coordinates field operations and release milestones"},
+    ]
+
+
+def be17_sample_analysis_payload():
+    """Full zero-API-key executive sample analysis so live demos work anywhere."""
+    return {
+        "team_readiness_pct": 64,
+        "executive_summary": (
+            "The Autonomous Fleet AI Squad has strong foundational telemetry ingestion (C++/MQTT) and Python API capabilities, "
+            "but faces two critical production bottlenecks: MLOps/model-serving automation (team avg 1.2/5 vs 4.0/5) and "
+            "production time-series forecasting (team avg 1.9/5 vs 4.0/5). Pairing Lukas and Amina on containerized inference "
+            "while upskilling Jonas on edge-to-cloud streaming closes all high-severity gaps within 8 weeks."
+        ),
+        "collective_strengths": [
+            "Strong Python & FastAPI backend engineering (Lukas & Amina)",
+            "Production-grade embedded CAN-bus & MQTT edge telemetry (Jonas)",
+            "Clear operational dispatch domain knowledge (Elena)",
+        ],
+        "collective_skill_gaps": [
+            {"skill": "MLOps & Model Serving", "current_team_avg": 1.2, "target": 4.0, "severity": "High", "impact": "Blocks automated retraining and low-latency inference in production."},
+            {"skill": "Time-Series Battery Forecasting", "current_team_avg": 1.9, "target": 4.0, "severity": "High", "impact": "Core predictive accuracy for state-of-health alerts depends on sequence modeling."},
+            {"skill": "Kubernetes & Scalable Streaming", "current_team_avg": 1.8, "target": 3.5, "severity": "Medium", "impact": "Needed to handle concurrent telemetry bursts across 250+ scooters."},
+            {"skill": "AI Product KPIs & Shadow Testing", "current_team_avg": 2.2, "target": 4.0, "severity": "Medium", "impact": "Required to validate dispatch decisions safely before full fleet rollout."},
+        ],
+        "individual_assessments": [
+            {
+                "name": "Lukas Weber",
+                "role": "Backend & Cloud Engineer",
+                "readiness_pct": 68,
+                "strengths": ["Python & FastAPI (4/5)", "PostgreSQL (3.5/5)", "Docker (3/5)"],
+                "skill_gaps": [
+                    {"skill": "Kubernetes & Scalable Streaming", "current": 1.0, "target": 4.0, "gap": 3.0, "priority_action": "Deploy an autoscaling FastAPI + Kafka/MQTT consumer cluster in staging."},
+                    {"skill": "MLOps & Model Serving", "current": 1.5, "target": 3.5, "gap": 2.0, "priority_action": "Containerize ONNX/TorchServe inference endpoints with automated health checks."},
+                ],
+                "recommended_focus": "Own cloud inference orchestration and autoscaling telemetry pipelines.",
+                "individual_roadmap": [
+                    "Weeks 1–2: Kubernetes deployments, Helm charts & horizontal pod autoscaling",
+                    "Weeks 3–4: Real-time telemetry queue ingestion & dead-letter handling",
+                    "Weeks 5–6: Model-serving CI/CD pipeline with shadow traffic routing",
+                ],
+                "assigned_projects": [
+                    "Build containerized Battery-SOH Inference Microservice",
+                    "Configure staging K8s cluster handling 500 msg/sec simulated fleet load",
+                ],
+            },
+            {
+                "name": "Amina Hassan",
+                "role": "Data Scientist",
+                "readiness_pct": 66,
+                "strengths": ["Python & SQL (4/5)", "Classical ML (3.5/5)"],
+                "skill_gaps": [
+                    {"skill": "Time-Series Battery Forecasting", "current": 2.0, "target": 4.5, "gap": 2.5, "priority_action": "Train & backtest Temporal Fusion / LightGBM sequence models on charge-discharge cycles."},
+                    {"skill": "MLOps & Model Serving", "current": 1.0, "target": 3.5, "gap": 2.5, "priority_action": "Refactor notebooks into reproducible training pipelines with MLflow tracking."},
+                ],
+                "recommended_focus": "Transition battery degradation models from notebooks to reproducible, drift-monitored pipelines.",
+                "individual_roadmap": [
+                    "Weeks 1–2: Feature engineering for voltage/temperature decay curves",
+                    "Weeks 3–4: Multi-horizon battery SOH forecasting & uncertainty intervals",
+                    "Weeks 5–6: Export reproducible training pipeline & drift monitoring alerts",
+                ],
+                "assigned_projects": [
+                    "Deliver validated Battery SOH Prediction Model (<4% MAE)",
+                    "Publish automated MLflow experiment & model-registry pipeline",
+                ],
+            },
+            {
+                "name": "Jonas Becker",
+                "role": "Embedded IoT Engineer",
+                "readiness_pct": 62,
+                "strengths": ["C++ Firmware (4/5)", "MQTT & CAN-Bus Telemetry (4/5)"],
+                "skill_gaps": [
+                    {"skill": "Kubernetes & Scalable Streaming", "current": 1.5, "target": 3.5, "gap": 2.0, "priority_action": "Implement schema-validated Protobuf/JSON telemetry payloads with offline buffering."},
+                    {"skill": "Python Data Tooling", "current": 2.5, "target": 3.5, "gap": 1.0, "priority_action": "Build Python hardware-in-the-loop replay scripts for fleet stress testing."},
+                ],
+                "recommended_focus": "Standardize edge telemetry schemas and edge-to-cloud reliability.",
+                "individual_roadmap": [
+                    "Weeks 1–2: Schema versioning & edge ring-buffer resilience on scooter firmware",
+                    "Weeks 3–4: Python fleet telemetry simulator for 250 concurrent scooters",
+                    "Weeks 5–6: Over-the-air diagnostic threshold tuning with backend team",
+                ],
+                "assigned_projects": [
+                    "Ship v2 Telemetry Payload Schema with offline replay buffer",
+                    "Build 250-Scooter Hardware/MQTT Load Simulator",
+                ],
+            },
+            {
+                "name": "Elena Rostova",
+                "role": "Product & Operations Lead",
+                "readiness_pct": 60,
+                "strengths": ["Agile Delivery (4/5)", "Fleet Operations (4/5)"],
+                "skill_gaps": [
+                    {"skill": "AI Product KPIs & Shadow Testing", "current": 2.0, "target": 4.0, "gap": 2.0, "priority_action": "Define precision/recall operational thresholds and A/B shadow rollout gates."},
+                ],
+                "recommended_focus": "Design shadow-mode rollout criteria and operator dispatch dashboards.",
+                "individual_roadmap": [
+                    "Weeks 1–2: Define battery alert SLA thresholds & swap-crew dispatch rules",
+                    "Weeks 3–4: Run 2-week shadow-mode pilot on 40 scooters",
+                    "Weeks 5–6: Full 250-scooter rollout playbook & ROI tracking dashboard",
+                ],
+                "assigned_projects": [
+                    "Author Shadow-Mode Rollout & Safety Gate Specification",
+                    "Launch Fleet Operations Predictive Dispatch Playbook",
+                ],
+            },
+        ],
+        "team_projects": [
+            {"title": "Unified Edge-to-Cloud Telemetry Backbone", "owners": "Jonas Becker & Lukas Weber", "deliverable": "Schema-validated MQTT-to-Kubernetes ingestion pipeline tested at 250-scooter scale."},
+            {"title": "Production Battery SOH Inference Engine", "owners": "Amina Hassan & Lukas Weber", "deliverable": "Containerized forecasting API with MLflow registry and automated drift alerts."},
+            {"title": "Shadow-Mode Fleet Dispatch Pilot", "owners": "Elena Rostova & Full Squad", "deliverable": "Live 40-scooter shadow validation report prior to full 250-scooter activation."},
+        ],
+        "role_reallocation_and_hiring": [
+            "Pair Lukas Weber (Backend) with Amina Hassan (Data Science) 3 hrs/week to eliminate the MLOps handoff bottleneck without hiring externally.",
+            "Contract a part-time DevOps/Kubernetes advisor for 2 weeks during Stage 2 to accelerate staging cluster hardening.",
+        ],
+        "five_stage_execution_roadmap": [
+            {"stage": 1, "title": "Telemetry Schema & Baseline SOH Modeling", "purpose": "Standardize scooter sensor streams and establish baseline battery degradation accuracy.", "skills": ["Time-Series Battery Forecasting", "Kubernetes & Scalable Streaming"], "outcome": "Clean 250-scooter telemetry schema + baseline SOH model.", "evidence_required": "Validated telemetry contract and offline backtest report.", "estimated_weeks": 3},
+            {"stage": 2, "title": "Containerized Inference & Staging Cluster", "purpose": "Bridge the MLOps gap by packaging the model into an autoscaling microservice.", "skills": ["MLOps & Model Serving", "Kubernetes & Scalable Streaming"], "outcome": "Staging inference API serving predictions under <120ms latency.", "evidence_required": "Load-tested Docker/K8s deployment in staging.", "estimated_weeks": 3},
+            {"stage": 3, "title": "40-Scooter Shadow-Mode Pilot", "purpose": "Run predictions alongside live operations without affecting active riders.", "skills": ["AI Product KPIs & Shadow Testing", "Time-Series Battery Forecasting"], "outcome": "Verified false-positive rate and battery-swap lead time.", "evidence_required": "2-week shadow telemetry vs. actual maintenance log audit.", "estimated_weeks": 3},
+            {"stage": 4, "title": "Automated Retraining & Drift Guardrails", "purpose": "Ensure model accuracy holds across seasonal temperature shifts.", "skills": ["MLOps & Model Serving"], "outcome": "Automated drift alerts and scheduled retraining pipeline.", "evidence_required": "Simulated drift trigger test & rollback drill.", "estimated_weeks": 3},
+            {"stage": 5, "title": "Full 250-Scooter Predictive Dispatch Rollout", "purpose": "Activate live predictive routing and battery-swap alerts across the entire fleet.", "skills": ["AI Product KPIs & Shadow Testing", "MLOps & Model Serving"], "outcome": "Full production cutover with weekly operational KPI review.", "evidence_required": "Production SLA sign-off and fleet downtime reduction report.", "estimated_weeks": 4},
+        ],
+    }
+
+
+def be17_sync_analysis_to_state(org_name, team_name, project_goal, timeline_months, weekly_hours, clean_members, result):
+    wf = be17_migrate()
+    wf.update({
+        "active_track": "workforce",
+        "org_name": str(org_name).strip(),
+        "team_name": str(team_name).strip(),
+        "project_goal": str(project_goal).strip(),
+        "timeline_months": int(timeline_months),
+        "weekly_hours_per_person": int(weekly_hours),
+        "members": clean_members,
+        "analysis": result,
+    })
+
+    state["profile"]["name"] = str(team_name or org_name or "Team Lead").strip()
+    state["profile"]["current_role"] = f"Workforce Lead · {len(clean_members)} Teammates"
+    state["profile"]["career_goal"] = str(project_goal).strip()
+    state["profile"]["timeline_months"] = int(timeline_months)
+    state["profile"]["weekly_hours"] = int(weekly_hours)
+
+    skills_map = {}
+    target_map = {}
+    top_gaps = []
+    for g in result.get("collective_skill_gaps", []):
+        sk = str(g.get("skill", "")).strip()
+        if not sk:
+            continue
+        cur = clamp(g.get("current_team_avg", 1.5))
+        tgt = clamp(g.get("target", 4.0))
+        gap_val = round(max(0.0, tgt - cur), 2)
+        skills_map[sk] = {
+            "score": cur,
+            "confidence": "medium",
+            "verified": False,
+            "evidence": str(g.get("impact", "Derived from team roster & project goal analysis.")),
+        }
+        target_map[sk] = {"target": tgt, "importance": 1.0, "description": str(g.get("impact", "")), "prerequisites": []}
+        top_gaps.append({"skill": sk, "current": cur, "target": tgt, "gap": gap_val, "importance": 1.0, "priority_score": round(gap_val / 5.0, 3)})
+
+    if skills_map:
+        state["target_model"] = {"career": str(project_goal).strip(), "summary": str(result.get("executive_summary", "")), "skills": target_map}
+        state["assessment"]["summary"] = str(result.get("executive_summary", ""))
+        state["assessment"]["strengths"] = result.get("collective_strengths", [])
+        state["assessment"]["skills"] = skills_map
+        state["assessment"]["top_gaps"] = sorted(top_gaps, key=lambda x: x["priority_score"], reverse=True)
+        state["assessment"]["readiness"] = int(result.get("team_readiness_pct", 50))
+        if state["assessment"]["top_gaps"]:
+            state["assessment"]["next_best_action"] = build_next_best_action(state["assessment"]["top_gaps"])
+
+    stages = []
+    for idx, stg in enumerate(result.get("five_stage_execution_roadmap", [])[:5], start=1):
+        stages.append({
+            "id": f"stage-{idx}",
+            "stage": idx,
+            "title": str(stg.get("title", f"Phase {idx}")),
+            "purpose": str(stg.get("purpose", "")),
+            "skills": stg.get("skills", list(skills_map.keys())[:2]),
+            "outcome": str(stg.get("outcome", "")),
+            "evidence_required": str(stg.get("evidence_required", "Team milestone deliverable")),
+            "estimated_weeks": max(1, int(stg.get("estimated_weeks", 2))),
+            "status": "CURRENT" if idx == 1 else "LOCKED",
+        })
+    if stages:
+        state["roadmap"] = stages
+    save_state()
+
+
+def be17_instant_sample_dashboard():
+    """Loads the sample squad AND populates full results immediately (no API key needed)."""
+    be17_load_sample_team()
+    wf = be17_migrate()
+    result = be17_sample_analysis_payload()
+    be17_sync_analysis_to_state(
+        wf["org_name"], wf["team_name"], wf["project_goal"],
+        wf["timeline_months"], wf["weekly_hours_per_person"], wf["members"], result
+    )
+    be_navigate("Dashboard")
+
+
+def be17_load_sample_and_go():
+    be17_load_sample_team()
+    be_navigate("Profile")
+
+
+def be17_generate_team_week():
+    if not OPENAI_API_KEY:
+        st.session_state["be2_flash"] = "Add OPENAI_API_KEY in .streamlit/secrets.toml to generate custom weekly tasks."
+        return
+    with st.spinner("Generating Week 1 Team Upskilling & Execution Sprint..."):
+        state["weekly_plan"] = ai_generate_weekly_plan(1)
+        save_state()
+    st.session_state["be2_flash"] = "Week 1 Team Sprint generated! Check 'Today' and 'This Week' in the sidebar."
+
+
+def be17_ask_coach_team():
+    wf = be17_migrate()
+    analysis = wf.get("analysis") or {}
+    gaps = ", ".join(g.get("skill", "") for g in analysis.get("collective_skill_gaps", [])[:5])
+    prompt = (
+        f"We are {wf.get('team_name') or 'a project team'} working toward: {wf.get('project_goal', '')}. "
+        f"Our top collective skill gaps are: {gaps}. "
+        "Give us a concrete 3-step execution strategy balancing upskilling, task delegation, and risk mitigation."
+    )
+    be4_prompt_coach(prompt)
+
+
+def be17_build_export_report():
+    wf = be17_migrate()
+    analysis = wf.get("analysis") or {}
+    lines = [
+        f"BECOME WORKFORCE INTELLIGENCE REPORT — {wf.get('team_name') or wf.get('org_name') or 'Team'}",
+        f"Organization: {wf.get('org_name') or 'N/A'}",
+        f"Project End Goal: {wf.get('project_goal', '')}",
+        f"Delivery Horizon: {wf.get('timeline_months', 3)} months | Weekly Upskilling Bandwidth: {wf.get('weekly_hours_per_person', 4)} hrs/person",
+        f"Overall Team Readiness: {analysis.get('team_readiness_pct', 0)}%",
+        "",
+        "1. EXECUTIVE SUMMARY",
+        str(analysis.get("executive_summary", "")),
+        "",
+        "2. COLLECTIVE SKILL GAPS",
+    ]
+    for g in analysis.get("collective_skill_gaps", []):
+        lines.append(
+            f"- {g.get('skill', '')}: Team Avg {g.get('current_team_avg', 0)}/5 -> Target {g.get('target', 4)}/5 "
+            f"[{g.get('severity', 'Medium')} Priority] — {g.get('impact', '')}"
+        )
+    lines.extend(["", "3. INDIVIDUAL TEAMMATE SKILL GAPS, ROADMAPS & PROJECTS"])
+    for p in analysis.get("individual_assessments", []):
+        lines.append(f"\n* {p.get('name', 'Teammate')} ({p.get('role', '')}) — Readiness: {p.get('readiness_pct', 0)}%")
+        lines.append(f"  Recommended Focus: {p.get('recommended_focus', '')}")
+        for sg in p.get("skill_gaps", []):
+            lines.append(
+                f"  - Gap: {sg.get('skill', '')} ({sg.get('current', 0)} -> {sg.get('target', 4)}/5, Gap {sg.get('gap', 0)}): "
+                f"{sg.get('priority_action', '')}"
+            )
+        for rm in p.get("individual_roadmap", []):
+            lines.append(f"  - Roadmap: {rm}")
+        for prj in p.get("assigned_projects", []):
+            lines.append(f"  - Project: {prj}")
+    if analysis.get("team_projects"):
+        lines.extend(["", "4. COLLECTIVE TEAM PROJECTS"])
+        for tp in analysis.get("team_projects", []):
+            lines.append(f"- {tp.get('title', '')} ({tp.get('owners', '')}): {tp.get('deliverable', '')}")
+    lines.extend(["", "5. 5-STAGE EXECUTION & CAPABILITY ROADMAP"])
+    for stg in analysis.get("five_stage_execution_roadmap", []):
+        lines.append(
+            f"Stage {stg.get('stage', '')}: {stg.get('title', '')} ({stg.get('estimated_weeks', 2)} wks) — "
+            f"Outcome: {stg.get('outcome', '')}"
+        )
+    return "\n".join(lines)
+
+
+def be17_analyze_workforce(org_name, team_name, project_goal, timeline_months, weekly_hours, members):
+    clean_members = [
+        {
+            "name": str(m.get("name", "")).strip(),
+            "role": str(m.get("role", "")).strip(),
+            "skills": str(m.get("skills", "")).strip(),
+            "current_work": str(m.get("current_work", "")).strip(),
+        }
+        for m in members
+        if str(m.get("name", "")).strip() or str(m.get("role", "")).strip()
+    ]
+    if not str(project_goal).strip() or not clean_members:
+        raise ValueError("Enter a project/organization end goal and at least one teammate with a name or role.")
+
+    if not OPENAI_API_KEY:
+        raise ValueError(
+            "OPENAI_API_KEY is not configured yet. Add it to .streamlit/secrets.toml for custom AI analysis, "
+            "or click 'Preview Instant Sample Squad Dashboard' to explore a full pre-computed team analysis right now!"
+        )
+
+    system_prompt = """
+You are Become Workforce, an AI workforce and organizational capability intelligence engine.
+Analyze the team roster, individual roles, current skills/work, and the target project/organization end goal.
+Return STRICT JSON only:
+{
+  "team_readiness_pct": 0,
+  "executive_summary": "",
+  "collective_strengths": [],
+  "collective_skill_gaps": [
+    {"skill": "", "current_team_avg": 0.0, "target": 4.0, "severity": "High|Medium|Low", "impact": ""}
+  ],
+  "individual_assessments": [
+    {
+      "name": "",
+      "role": "",
+      "readiness_pct": 0,
+      "strengths": [],
+      "skill_gaps": [
+        {"skill": "", "current": 0.0, "target": 4.0, "gap": 0.0, "priority_action": ""}
+      ],
+      "recommended_focus": "",
+      "individual_roadmap": ["Weeks 1-2: ...", "Weeks 3-4: ...", "Weeks 5-6: ..."],
+      "assigned_projects": ["Concrete deliverable 1", "Concrete deliverable 2"]
+    }
+  ],
+  "team_projects": [
+    {"title": "", "owners": "", "deliverable": ""}
+  ],
+  "role_reallocation_and_hiring": [],
+  "five_stage_execution_roadmap": [
+    {"stage": 1, "title": "", "purpose": "", "skills": [], "outcome": "", "evidence_required": "", "estimated_weeks": 2}
+  ]
+}
+Be realistic, specific, and evidence-grounded. Use 0-5 scales for skills.
+"""
+    user_prompt = json.dumps({
+        "organization": org_name,
+        "team": team_name,
+        "project_end_goal": project_goal,
+        "timeline_months": timeline_months,
+        "weekly_upskilling_hours_per_member": weekly_hours,
+        "teammates": clean_members,
+    }, indent=2, ensure_ascii=False)
+
+    raw = ask_ai(system_prompt, user_prompt)
+    result = parse_json_response(raw)
+    if not isinstance(result, dict) or not result.get("individual_assessments"):
+        raise ValueError("Workforce analysis returned incomplete data. Please retry.")
+
+    be17_sync_analysis_to_state(org_name, team_name, project_goal, timeline_months, weekly_hours, clean_members, result)
+    return result
+
+
+def be17_render_workforce_setup():
+    wf = be17_migrate()
+    be_html('<div class="be2-heading"><div><div class="be-eyebrow">BECOME WORKFORCE INTELLIGENCE</div>'
+            '<h1>Map your team. Close every skill gap.</h1>'
+            '<p>Enter your teammates, their current roles, skills, and your project end goal. Become calculates individual skill gaps, individual & team roadmaps, and assigned deliverables.</p></div>'
+            '<span class="be2-badge">TEAM & ORG ENGINE</span></div>')
+
+    if not OPENAI_API_KEY:
+        st.info("💡 **No API key configured yet:** You can still click **⚡ Preview Instant Sample Squad Dashboard** below to inspect the full Workforce Intelligence charts, heatmaps, individual roadmaps, and team projects immediately!")
+
+    q1, q2, q3 = st.columns([1.2, 1.2, 1], gap="small")
+    with q1:
+        st.button("⚡ Preview Instant Sample Squad Dashboard", key="be17_form_instant_demo",
+                  type="primary", on_click=be17_instant_sample_dashboard, use_container_width=True)
+    with q2:
+        st.button("📝 Auto-Fill Form with Sample Roster", key="be17_form_sample_fill",
+                  on_click=be17_load_sample_team, use_container_width=True)
+    with q3:
+        if wf.get("analysis"):
+            st.button("← Back to Dashboard", key="be17_form_back_dash",
+                      on_click=be_navigate, args=("Dashboard",), use_container_width=True)
+
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        org_name = st.text_input("Organization / Company Name", value=wf.get("org_name", ""), placeholder="e.g. Acme Robotics GmbH", key="be17_org")
+    with c2:
+        team_name = st.text_input("Team / Department Name", value=wf.get("team_name", ""), placeholder="e.g. Core AI & Platform Squad", key="be17_team")
+
+    project_goal = st.text_area(
+        "Project / Organization End Goal",
+        value=wf.get("project_goal", ""),
+        height=95,
+        placeholder="e.g. Ship an automated predictive-maintenance pipeline in production across 3 factory lines within 4 months.",
+        key="be17_goal",
+    )
+
+    t1, t2 = st.columns(2, gap="medium")
+    with t1:
+        timeline_months = st.number_input("Target delivery horizon (months)", min_value=1, max_value=36, value=int(wf.get("timeline_months", 3)), key="be17_months")
+    with t2:
+        weekly_hours = st.number_input("Upskilling / practice capacity per teammate (hrs/week)", min_value=1, max_value=40, value=int(wf.get("weekly_hours_per_person", 4)), key="be17_hours")
+
+    st.markdown("### Team Roster & Current Capabilities")
+    st.caption("Add each teammate's role, current technical/domain skills, and what they currently work on.")
+
+    updated_members = []
+    for idx, member in enumerate(wf["members"]):
+        with st.container(key=f"be17_member_box_{idx}"):
+            h1, h2 = st.columns([4, 1])
+            with h1:
+                st.markdown(f"**Teammate #{idx + 1}**")
+            with h2:
+                if len(wf["members"]) > 1:
+                    st.button("Remove", key=f"be17_rm_{idx}", on_click=be17_remove_member, args=(idx,), use_container_width=True)
+            m1, m2 = st.columns(2, gap="small")
+            with m1:
+                m_name = st.text_input("Name", value=member.get("name", ""), placeholder="e.g. Lukas Weber", key=f"be17_m_name_{idx}")
+            with m2:
+                m_role = st.text_input("Current Role", value=member.get("role", ""), placeholder="e.g. Backend Python Developer", key=f"be17_m_role_{idx}")
+            m_skills = st.text_input("Current Skills & Levels", value=member.get("skills", ""), placeholder="e.g. Python (strong), FastAPI, SQL, basic Docker, no Kubernetes or MLOps", key=f"be17_m_skills_{idx}")
+            m_work = st.text_input("Current Work / Responsibilities", value=member.get("current_work", ""), placeholder="e.g. Maintains REST APIs and PostgreSQL data ingestion", key=f"be17_m_work_{idx}")
+            updated_members.append({"name": m_name, "role": m_role, "skills": m_skills, "current_work": m_work})
+
+    wf["members"] = updated_members
+
+    b1, b2 = st.columns([1, 2], gap="medium")
+    with b1:
+        st.button("+ Add Teammate", key="be17_add_btn", on_click=be17_add_member, use_container_width=True)
+    with b2:
+        if st.button("Calculate Team & Individual Skill Gaps (Live AI) →", key="be17_run_btn", type="primary", use_container_width=True):
+            try:
+                with st.spinner("Analyzing individual teammates, collective team gaps, and execution roadmap..."):
+                    be17_analyze_workforce(org_name, team_name, project_goal, timeline_months, weekly_hours, updated_members)
+                st.session_state["be2_flash"] = "Workforce intelligence analysis complete! Individual & team skill gaps are ready."
+                be_navigate("Dashboard")
+                st.rerun()
+            except Exception as exc:
+                st.error(be3_error(exc))
+
+
+def be17_render_workforce_dashboard():
+    wf = be17_migrate()
+    analysis = wf.get("analysis")
+    if not analysis:
+        with st.container(key="dashboard_empty"):
+            be_html('<div class="be-empty"><span class="be-story-icon">' + be_icon("target", 32) +
+                    '</span><div class="be-eyebrow">BECOME WORKFORCE INTELLIGENCE</div>'
+                    '<h1>Your team & project goal.<br>A clearer workforce strategy.</h1>'
+                    '<p>Add your teammates, their roles and skills, and your project end goal—or launch the instant sample squad dashboard to explore skill-gap charts, heatmaps, and individual + team roadmaps.</p></div>')
+            a, b, c = st.columns([1, 2, 1])
+            with b:
+                st.button("⚡ Preview Instant Sample Squad Dashboard", type="primary", key="be17_instant_demo_btn",
+                          on_click=be17_instant_sample_dashboard, use_container_width=True)
+                st.button("Set up custom team & goal →", key="be17_empty_setup",
+                          on_click=be_navigate, args=("Profile",), use_container_width=True)
+                st.button("Switch to Career mode", key="be17_switch_career_empty",
+                          on_click=be17_set_track, args=("career",), use_container_width=True)
+                st.button("Back to Become", key="be17_empty_back",
+                          on_click=be_navigate, args=("Welcome",), use_container_width=True)
+        return
+
+    members = analysis.get("individual_assessments", [])
+    gaps = analysis.get("collective_skill_gaps", [])
+    high_gaps = sum(1 for g in gaps if str(g.get("severity", "")).lower() == "high")
+    readiness_pct = int(analysis.get("team_readiness_pct", 0))
+    total_weekly_hrs = len(members) * int(wf.get("weekly_hours_per_person", 4))
+
+    be_html(
+        f'<div class="be17-wf-banner"><div><strong>🏢 WORKFORCE INTELLIGENCE · {be_escape(wf.get("team_name") or wf.get("org_name") or "Active Team")}</strong><br>'
+        f'<span>Goal: {be_escape(wf.get("project_goal", ""))}</span></div>'
+        f'<span class="be2-badge">HORIZON · {int(wf.get("timeline_months", 3))} MO</span></div>'
+    )
+
+    be_html(
+        '<div class="be2-kpis">'
+        '<section class="be2-kpi"><h2>Team goal readiness</h2><div class="be2-minirow">'
+        + be2_ring(readiness_pct, "Team readiness")
+        + f'<div><strong>{readiness_pct}%</strong><small>collective capability fit</small></div></div></section>'
+        '<section class="be2-kpi"><h2>Critical skill bottlenecks</h2><div class="be2-kicker">PRIORITY GAPS</div>'
+        f'<div class="be2-kpi-value">{high_gaps} High / {len(gaps)}</div><small>collective gaps flagged across roster</small></section>'
+        '<section class="be2-kpi"><h2>Active squad capacity</h2><div class="be2-kicker">ROSTER & BANDWIDTH</div>'
+        f'<div class="be2-kpi-value">{len(members)} People</div><small>{total_weekly_hrs} hrs/week total learning bandwidth</small></section>'
+        '<section class="be2-kpi"><h2>Delivery horizon</h2><div class="be2-kicker">EXECUTION TARGET</div>'
+        f'<div class="be2-kpi-value">{int(wf.get("timeline_months", 3))} Months</div><small>5-stage capability & delivery plan</small></section>'
+        '</div>'
+    )
+
+    c1, c2, c3, c4, c5 = st.columns(5, gap="small")
+    with c1:
+        st.button("✏️ Edit Roster", key="be17_edit_roster", on_click=be_navigate, args=("Profile",), use_container_width=True)
+    with c2:
+        st.button("📅 Team Week 1", key="be17_gen_week", type="primary", on_click=be17_generate_team_week, use_container_width=True)
+    with c3:
+        st.button("🧠 Coach Strategy", key="be17_coach_btn", on_click=be17_ask_coach_team, use_container_width=True)
+    with c4:
+        st.download_button(
+            "📄 Export Brief",
+            data=be17_build_export_report(),
+            file_name=f"become-workforce-{be_slug(wf.get('team_name') or 'team')}.txt",
+            mime="text/plain",
+            key="be17_export_brief",
+            use_container_width=True,
+        )
+    with c5:
+        st.button("🎯 Career Mode", key="be17_to_career", on_click=be17_set_track, args=("career",), use_container_width=True)
+
+    st.info(analysis.get("executive_summary", ""))
+
+    # Tabbed Enterprise Workspace: Skill Gaps & Heatmap | Roadmaps (Team & Individual) | Projects (Team & Individual)
+    tab_gaps, tab_roadmaps, tab_projects = st.tabs([
+        "📊 Skill Gaps & Capability Heatmap",
+        "🗺️ Roadmaps (Collective & Individual)",
+        "🛠️ Projects & Deliverables (Team & Individual)",
+    ])
+
+    with tab_gaps:
+        left_col, right_col = st.columns([1.15, 1], gap="medium")
+        with left_col:
+            with st.container(key="be17_card_skill_bars"):
+                be_html(be2_panel_title("Collective Team Skill Coverage (0–5 Scale)", "chart", "TEAM AVERAGES"))
+                skill_rows = be2_skill_rows()
+                if skill_rows:
+                    be_html(be2_skill_bars(skill_rows))
+                    be_html('<div class="be2-data-legend"><span><i class="met"></i>At target level</span><span><i></i>Team gap to close</span></div>'
+                            '<p class="be2-micro">Dark vertical ticks indicate the required target capability level for the project goal.</p>')
+                for g in gaps:
+                    sev = g.get("severity", "Medium")
+                    st.markdown(f"**{g.get('skill', '')}** (`{g.get('current_team_avg', 0)}/5` → `{g.get('target', 4)}/5` · **{sev}**): {g.get('impact', '')}")
+
+        with right_col:
+            with st.container(key="be17_card_matrix"):
+                be_html(be2_panel_title("Teammate Readiness & Gap Matrix", "badge", "PER-PERSON VIEW"))
+                matrix_rows = []
+                for p in members:
+                    top_person_gaps = ", ".join(f"{sg.get('skill')} (-{sg.get('gap')})" for sg in p.get("skill_gaps", [])[:3]) or "On target"
+                    matrix_rows.append({
+                        "Teammate": p.get("name", ""),
+                        "Role": p.get("role", ""),
+                        "Readiness": f"{p.get('readiness_pct', 0)}%",
+                        "Primary Gaps": top_person_gaps,
+                    })
+                if matrix_rows:
+                    st.dataframe(pd.DataFrame(matrix_rows), use_container_width=True, hide_index=True)
+                if analysis.get("role_reallocation_and_hiring"):
+                    st.markdown("**Strategic Reallocation & Hiring Signals**")
+                    for rec in analysis.get("role_reallocation_and_hiring", []):
+                        st.write("• " + str(rec))
+
+        tracked_skills = [g.get("skill", "") for g in gaps if g.get("skill")]
+        if tracked_skills and members:
+            with st.container(key="be17_card_heatmap"):
+                be_html(be2_panel_title("Team × Skill Capability Heatmap (0–5 Scale)", "chart", "BUS-FACTOR & COVERAGE"))
+                st.caption("Spot single-point-of-failure risks and internal peer-mentoring pairs across your critical project skills.")
+                header_cells = "".join(f"<th style='text-align:center;padding:8px 10px;font-size:.75rem;color:#3a2d63;border-bottom:1px solid #dfd9f5'>{be_escape(sk)}</th>" for sk in tracked_skills)
+                body_rows = []
+                for p in members:
+                    gap_lookup = {str(sg.get("skill", "")).casefold(): float(sg.get("current", 0)) for sg in p.get("skill_gaps", [])}
+                    cells = [f"<td style='padding:8px 10px;font-size:.78rem;font-weight:700;color:#241944;border-bottom:1px solid #eeeaf9'>{be_escape(p.get('name', ''))} <span style='font-weight:400;color:#6e648c'>({be_escape(p.get('role', ''))})</span></td>"]
+                    for sk in tracked_skills:
+                        val = round(gap_lookup.get(sk.casefold(), 4.0), 1)
+                        if val >= 3.5:
+                            bg, fg = "#dcf6e9", "#12694c"
+                        elif val >= 2.0:
+                            bg, fg = "#fff2d6", "#875312"
+                        else:
+                            bg, fg = "#ffe4e6", "#9f1c2c"
+                        cells.append(f"<td style='text-align:center;padding:8px;border-bottom:1px solid #eeeaf9'><span style='display:inline-block;padding:4px 10px;border-radius:999px;background:{bg};color:{fg};font-weight:800;font-size:.74rem'>{val:.1f} / 5</span></td>")
+                    body_rows.append("<tr>" + "".join(cells) + "</tr>")
+                table_html = (
+                    "<div style='overflow-x:auto'><table style='width:100%;border-collapse:collapse;background:#fff;border-radius:14px;overflow:hidden'>"
+                    f"<thead><tr style='background:#f4f0ff'><th style='text-align:left;padding:8px 10px;font-size:.75rem;color:#3a2d63;border-bottom:1px solid #dfd9f5'>Teammate</th>{header_cells}</tr></thead>"
+                    f"<tbody>{''.join(body_rows)}</tbody></table></div>"
+                )
+                be_html(table_html)
+
+        st.subheader("Individual Teammate Skill-Gap Breakdown")
+        for idx, person in enumerate(members):
+            gaps_html = "".join(
+                f'<span class="be17-gap-pill">⚠️ {be_escape(sg.get("skill",""))} ({sg.get("current",0)}→{sg.get("target",4)}/5 · Gap {sg.get("gap",0)})</span>'
+                for sg in person.get("skill_gaps", [])
+            )
+            strengths_html = "".join(
+                f'<span class="be17-ok-pill">✓ {be_escape(st_item)}</span>'
+                for st_item in person.get("strengths", [])
+            )
+            be_html(
+                f'<div class="be17-member-card">'
+                f'<div class="be17-member-head"><h3>{be_escape(person.get("name","Teammate"))} — {be_escape(person.get("role",""))}</h3>'
+                f'<span class="be2-badge">Readiness {person.get("readiness_pct", 0)}%</span></div>'
+                f'<div>{strengths_html}</div><div style="margin-top:6px">{gaps_html}</div>'
+                f'<p style="margin:10px 0 0;font-size:.82rem;color:#4a3f6b"><strong>Recommended Focus:</strong> {be_escape(person.get("recommended_focus",""))}</p>'
+                f'</div>'
+            )
+            with st.expander(f"Actionable upskilling plan for {person.get('name', 'Teammate')}"):
+                for sg in person.get("skill_gaps", []):
+                    st.write(f"• **{sg.get('skill', '')}** (Gap: {sg.get('gap', 0)} pts): {sg.get('priority_action', '')}")
+
+    with tab_roadmaps:
+        st.subheader("Collective 5-Stage Team Execution Roadmap")
+        with st.container(key="be17_card_roadmap"):
+            be2_render_roadmap_preview()
+        st.subheader("Individual Teammate Upskilling Roadmaps")
+        for person in members:
+            with st.container(key=f"be17_ind_rm_{be_slug(person.get('name','member'))}"):
+                st.markdown(f"**{person.get('name', 'Teammate')}** — *{person.get('role', '')}*")
+                for step in person.get("individual_roadmap", []):
+                    st.write("• " + str(step))
+
+    with tab_projects:
+        st.subheader("Collective Team Projects & Milestones")
+        for tp in analysis.get("team_projects", []):
+            be_html(
+                f'<div class="be17-member-card">'
+                f'<div class="be17-member-head"><h3>🚀 {be_escape(tp.get("title", "Team Project"))}</h3>'
+                f'<span class="be2-badge">{be_escape(tp.get("owners", "Team"))}</span></div>'
+                f'<p style="margin:6px 0 0;font-size:.84rem;color:#3d325c"><strong>Deliverable:</strong> {be_escape(tp.get("deliverable", ""))}</p>'
+                f'</div>'
+            )
+        st.subheader("Individual Assigned Deliverables & Practice Projects")
+        for person in members:
+            with st.container(key=f"be17_ind_prj_{be_slug(person.get('name','member'))}"):
+                st.markdown(f"**{person.get('name', 'Teammate')}** — *{person.get('role', '')}*")
+                for prj in person.get("assigned_projects", []):
+                    st.write("• 🛠️ " + str(prj))
+        
 # RC12 — PUBLIC ENTRY EXPERIENCE
 # The first screen of each browser session is a deliberate landing page.
 # Full app navigation appears only after the visitor enters Become.
@@ -9421,48 +10611,98 @@ BE12_CSS = r"""<style>
 
 
 def be12_render_welcome():
-    """True entry page: story first, application navigation second."""
+    """True entry page: adapts dynamically between Career and Workforce modes."""
+    wf = be17_migrate()
+    active_track = st.session_state.get("be17_track", wf.get("active_track", "career"))
+    is_wf = active_track == "workforce"
     art = be_hero_art()
+
+    if is_wf:
+        hero_eyebrow = "WORKFORCE CAPABILITY & SKILL-GAP INTELLIGENCE"
+        hero_h1 = "Map your team.<br>Close every gap.<br><span>Ship faster.</span>"
+        hero_p = (
+            "Turn your team roster, current roles, and project end goal into a live capability matrix. "
+            "Become Workforce calculates individual skill gaps per teammate, collective bottlenecks, and synchronized team + individual roadmaps."
+        )
+        hero_pills = "<span>🏢 Multi-teammate roster</span><span>📊 0–5 Skill-gap heatmap</span><span>🗺️ Team & individual roadmaps</span><span>🚀 Project readiness</span>"
+    else:
+        hero_eyebrow = "YOUR FUTURE, IN MOTION"
+        hero_h1 = "Dream it.<br>Build it.<br><span>Become it.</span>"
+        hero_p = (
+            "Career direction can feel overwhelming when everything matters at once. Become turns your goal, your starting point, "
+            "and the work you actually demonstrate into one journey you can move through step by step."
+        )
+        hero_pills = "<span>🎯 Personal pathway</span><span>🧠 Learn by doing</span><span>📈 Progress from evidence</span><span>🌱 Explore what comes next</span>"
+
     be_html(
         '<section class="be12-landing-shell">'
-        '<div class="be12-brandline"><img class="be12-brandmark" src="'+BE_LOGO_URI+'" alt=""><div><div class="be12-brandname">Become</div><div class="be12-tag">Commit to it. Become it. Be it.</div></div></div>'
-        '<div class="be12-hero-grid"><div class="be12-copy"><div class="be-eyebrow" style="color:#fff4a8">YOUR FUTURE, IN MOTION</div>'
-        '<h1>Dream it.<br>Build it.<br><span>Become it.</span></h1>'
-        '<p>Career direction can feel overwhelming when everything matters at once. Become turns your goal, your starting point, and the work you actually demonstrate into one journey you can move through step by step.</p>'
-        '<div class="be12-proof"><span>🎯 Personal pathway</span><span>🧠 Learn by doing</span><span>📈 Progress from evidence</span><span>🌱 Explore what comes next</span></div></div>'
+        '<div class="be12-brandline"><img class="be12-brandmark" src="'+BE_LOGO_URI+'" alt=""><div><div class="be12-brandname">Become' + (' Workforce' if is_wf else '') + '</div><div class="be12-tag">Commit to it. Become it. Be it.</div></div></div>'
+        '<div class="be12-hero-grid"><div class="be12-copy"><div class="be-eyebrow" style="color:#fff4a8">'+hero_eyebrow+'</div>'
+        '<h1>'+hero_h1+'</h1>'
+        '<p>'+hero_p+'</p>'
+        '<div class="be12-proof">'+hero_pills+'</div></div>'
         '<div class="be12-art">'+art+'</div></div></section>'
     )
-    a,b,c = st.columns([1.3,1,1],gap="small")
-    with a:
-        st.button("Enter Become →", key="be12_enter", type="primary", on_click=be_navigate, args=("Dashboard",), use_container_width=True)
-    with b:
-        st.button("EasyApply only →", key="be12_easy", on_click=be_navigate, args=("EasyApply",), use_container_width=True)
-    with c:
-        st.button("Pricing →", key="be12_pricing", on_click=be_navigate, args=("Pricing",), use_container_width=True)
+
+    with st.container(key="be17_landing_track"):
+        t_left, t_right = st.columns(2, gap="small")
+        with t_left:
+            st.button(
+                "🎯 Career — Individual Path & Growth",
+                key="be17_pick_career",
+                type="primary" if not is_wf else "secondary",
+                on_click=be17_set_track,
+                args=("career",),
+                use_container_width=True,
+            )
+        with t_right:
+            st.button(
+                "🏢 Workforce — Team & Organizational Skill Gaps",
+                key="be17_pick_workforce",
+                type="primary" if is_wf else "secondary",
+                on_click=be17_set_track,
+                args=("workforce",),
+                use_container_width=True,
+            )
+
+    if is_wf:
+        c1, c2 = st.columns([1.6, 1], gap="small")
+        with c1:
+            st.button("Enter Become Workforce →", key="be12_enter", type="primary", on_click=be17_enter_track, use_container_width=True)
+        with c2:
+            st.button("Pricing →", key="be12_pricing", on_click=be_navigate, args=("Pricing",), use_container_width=True)
+    else:
+        a, b, c = st.columns([1.3, 1, 1], gap="small")
+        with a:
+            st.button("Enter Become →", key="be12_enter", type="primary", on_click=be17_enter_track, use_container_width=True)
+        with b:
+            st.button("EasyApply only →", key="be12_easy", on_click=be_navigate, args=("EasyApply",), use_container_width=True)
+        with c:
+            st.button("Pricing →", key="be12_pricing", on_click=be_navigate, args=("Pricing",), use_container_width=True)
+
     be_html('<div class="be12-entry-note">Your current journey is never reset by returning to this page.</div>')
 
-    steps = (
-        ("🎯","Choose","Set a direction worth moving toward."),
-        ("🧩","Understand","See what your background already demonstrates."),
-        ("📚","Learn","Use examples, practice and focused missions."),
-        ("🛠️","Show","Turn your work into visible evidence."),
-        ("🌍","Explore","See careers and opportunities your skills can unlock."),
-        ("🚀","Grow","Reroute as your evidence and ambitions change."),
-    )
-    be_html('<section class="be12-journey"><div class="be12-journey-head"><div><div class="be-eyebrow">HOW BECOME WORKS</div><h2>Your future is a journey, not a form.</h2></div><p>Small steps. Real work. A pathway that moves with you.</p></div><div class="be12-path">'+''.join('<div class="be12-step"><b>'+e+'</b><strong>'+h+'</strong><span>'+d+'</span></div>' for e,h,d in steps)+'</div></section>')
-
-    promises=(
-        ("🧭","Clarity before noise","Understand where you stand and why a particular next step belongs in your plan."),
-        ("✨","Practice that feels human","Examples first, quick checks, practical work and feedback — more like a good guide than a textbook."),
-        ("🌱","More paths, not one box","Explore adjacent careers and real opportunities without losing the journey you already built."),
-    )
-    be_html('<div class="be12-promise-grid">'+''.join('<article class="be12-promise"><div class="emoji">'+e+'</div><h3>'+h+'</h3><p>'+d+'</p></article>' for e,h,d in promises)+'</div>')
-
-    be11_render_product_ad()
-    if not be5_account():
-        st.button("Sign in & keep my journey ☁️", key="be12_account", on_click=be_navigate, args=("Account",), use_container_width=True)
-    be_html('<div class="be-principle-strip"><strong>Commit to it. Become it. Be it.</strong><div class="be-pill-row"><span>Clarity over overload</span><span>Evidence over guesswork</span><span>Your next chapter</span></div></div>')
-
+    if is_wf:
+        steps = (
+            ("🎯", "Define Goal", "Set the project or organizational outcome and delivery horizon."),
+            ("👥", "Map Roster", "Input teammates, roles, current skills, and active responsibilities."),
+            ("📊", "Spot Gaps", "Calculate individual gaps and collective team bottlenecks on a 0–5 scale."),
+            ("🗺️", "Align Roadmaps", "Generate synchronized team milestones and per-person upskilling tracks."),
+            ("🛠️", "Assign Work", "Match projects and deliverables to each teammate's growth edge."),
+            ("🚀", "Track Readiness", "Measure team readiness and export executive capability briefs."),
+        )
+        be_html('<section class="be12-journey"><div class="be12-journey-head"><div><div class="be-eyebrow">HOW BECOME WORKFORCE WORKS</div><h2>Turn team potential into predictable execution.</h2></div><p>Individual clarity. Collective alignment. Measurable readiness.</p></div><div class="be12-path">'+''.join('<div class="be12-step"><b>'+e+'</b><strong>'+h+'</strong><span>'+d+'</span></div>' for e,h,d in steps)+'</div></section>')
+    else:
+        steps = (
+            ("🎯", "Choose", "Set a direction worth moving toward."),
+            ("🧩", "Understand", "See what your background already demonstrates."),
+            ("📚", "Learn", "Use examples, practice and focused missions."),
+            ("🛠️", "Show", "Turn your work into visible evidence."),
+            ("🌍", "Explore", "See careers and opportunities your skills can unlock."),
+            ("🚀", "Grow", "Reroute as your evidence and ambitions change."),
+        )
+        be_html('<section class="be12-journey"><div class="be12-journey-head"><div><div class="be-eyebrow">HOW BECOME WORKS</div><h2>Your future is a journey, not a form.</h2></div><p>Small steps. Real work. A pathway that moves with you.</p></div><div class="be12-path">'+''.join('<div class="be12-step"><b>'+e+'</b><strong>'+h+'</strong><span>'+d+'</span></div>' for e,h,d in steps)+'</div></section>')
+        be11_render_product_ad()
 
 # ============================================================
 # RC14 — DISCOVERY: OBSERVE, SURFACE, LET THE PERSON DECIDE
@@ -10096,6 +11336,8 @@ def be14_render():
         st.caption(be5_storage_help())
 
 be_html(BE12_CSS)
+be_html(BE17_CSS)
+be17_migrate()
 be_html(BE11_CSS)
 be_html(BE4_CSS)
 be_html(BE10_CSS)
@@ -10140,6 +11382,9 @@ elif page == "Account":
 elif page == "Settings":
     be_render_settings()
 
+elif page == "Dashboard" and be17_migrate().get("active_track") == "workforce":
+    be17_render_workforce_dashboard()
+
 elif page == "Dashboard" and not be_has_journey():
     be_render_dashboard_empty()
 
@@ -10152,7 +11397,10 @@ elif page == "Today":
 
 
 elif page == "Profile":
-    be2_render_profile()
+    if be17_migrate().get("active_track") == "workforce":
+        be17_render_workforce_setup()
+    else:
+        be2_render_profile()
 
 
 elif page == "Future Paths":
@@ -10610,7 +11858,10 @@ elif page == "Recommendations":
 
 
 elif page == "Projects":
-    be3_render_projects()
+    if be17_is_workforce() and be17_migrate().get("analysis"):
+        be17_render_workforce_dashboard()
+    else:
+        be3_render_projects()
 
 elif page == "Evidence":
     be3_render_evidence()
