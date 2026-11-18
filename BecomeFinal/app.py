@@ -816,7 +816,7 @@ def ask_ai(system_prompt, user_prompt):
         if client is None:
             client = OpenAI(api_key=OPENAI_API_KEY, timeout=60.0, max_retries=1)
         response = client.responses.create(
-            model=OPENAI_MODEL, instructions=system_prompt, input=user_prompt, max_output_tokens=10000,
+            model=("google/gemini-2.5-flash" if str(OPENAI_API_KEY or "").startswith("sk-or-") else "gpt-4o-mini"), instructions=system_prompt, input=user_prompt, max_output_tokens=10000,
         )
         return response.output_text
     except Exception as exc:
