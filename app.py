@@ -9905,6 +9905,34 @@ def be11_render_easyapply_hub():
 # ============================================================
 # ============================================================
 # ============================================================
+
+# ============================================================
+# OPENROUTER / MULTI-MODEL FAST INFERENCE ROUTER
+# ============================================================
+def _be_init_ai_client():
+    key = str(OPENAI_API_KEY or "").strip()
+    if not key or OpenAI is None:
+        return None, ""
+    if key.startswith("sk-or-"):
+        return OpenAI(api_key=key, base_url="https://openrouter.ai/api/v1"), "google/gemini-2.5-flash"
+    return OpenAI(api_key=key), "gpt-4o-mini"
+
+
+def ask_ai(system_prompt, user_prompt, temperature=0.2):
+    be5_ai_guard()
+    ai_client, model_name = _be_init_ai_client()
+    if ai_client is None:
+        raise RuntimeError("AI generation is not configured yet. Add OPENAI_API_KEY in secrets.")
+    response = ai_client.chat.completions.create(
+        model=model_name,
+        temperature=temperature,
+        messages=[
+            {"role": "system", "content": str(system_prompt)},
+            {"role": "user", "content": str(user_prompt)},
+        ],
+    )
+    return response.choices[0].message.content or ""
+
 # BE17 — BECOME WORKFORCE INTELLIGENCE ENGINE
 # Full B2B Team & Individual Skill-Gap, Roadmap & Project Engine
 # ============================================================
